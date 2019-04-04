@@ -2,8 +2,8 @@
 #include <Wire.h>
 #include <Keypad.h>
 
-const int rs = 12, en = 11, d4 = 34, d5 = 30, d6 = 26, d7 = 22;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+const int rs = 12, en = 11, d0 = 23, d1 = 27, d2 = 31, d3 = 35, d4 = 34, d5 = 30, d6 = 26, d7 = 22;
+LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
 
 const byte ROWS = 4;
 const byte COLS = 4;
@@ -32,8 +32,12 @@ void setup()
   lcd.begin(16, 2);
   // Print a message to the LCD.
   lcd.print("Enter time for frying");
-  lcd.setCursor(0, 1);
-  lcd.print(timeIN);
+  lcd.setCursor(0, 1);    
+  lcd.print(timeIN[0]);
+  lcd.print(timeIN[1]);
+  lcd.print(":");
+  lcd.print(timeIN[2]);
+  lcd.print(timeIN[3]);
 }
 
 void loop() 
@@ -45,6 +49,11 @@ void loop()
     lcd.setCursor(0, 1); 
     timeIN.remove(0,1);
     timeIN += customKey;
-    lcd.print(timeIN); 
+    lcd.print(timeIN[0]);
+    lcd.print(timeIN[1]);
+    lcd.print(":");
+    lcd.print(timeIN[2]);
+    lcd.print(timeIN[3]);
   }
+  
 }
