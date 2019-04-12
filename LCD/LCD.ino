@@ -35,9 +35,9 @@ void setup()
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
-  lcd.setCursor(0,11);    
-  lcd.print("TIME:)
-  lcd.setCursor(1,11);    
+  lcd.setCursor(11,0);    
+  lcd.print("TIME:");
+  lcd.setCursor(11,1);    
   lcd.print(timeIN[0]);
   lcd.print(timeIN[1]);
   lcd.print(":");
@@ -53,26 +53,28 @@ void updateTime(){
     minutes = 99;
   }
   lcd.setCursor(1,11);    
-  lcd.print(minutes/10);
-  lcd.print(minutes%10);
+  lcd.print((char) minutes/10);
+  lcd.print((char)minutes%10);
   lcd.print(":");
-  lcd.print(seconds/10);
-  lcd.print(seconds/10);
+  lcd.print((char)seconds/10);
+  lcd.print((char)seconds/10);
 }
 
-void checkKey(char input){
-  switch(input){
-    case "1":
-    case "2":
-    case "3":
-    case "4":
-    case "5":
-    case "6":
-    case "7":
-    case "8":
-    case "9":
-    case "0":
+void checkKey(int input){
+  lcd.print(input);
+  switch((char) input){
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 0:
       //Remove the first char of the string and add the input at the end:
+      
       if(timeIN[0] == "0"){
         timeIN.remove(0,1);
         timeIN += input;
@@ -80,29 +82,43 @@ void checkKey(char input){
       else{
         error = true;
       }
+      
+      lcd.print(timeIN[0]);
+      lcd.print(timeIN[1]);
+      lcd.print(":");
+      lcd.print(timeIN[2]);
+      lcd.print(timeIN[3]);
       break;
-   case "*": //Enter?
+   case 10: //Enter?
       //use function to start timer here
-   case "#": //Cancel?
+      timeLeft = (int) (timeIN[0] + timeIN[1]) * 60;
+      timeLeft += (int) (timeIN[2] + timeIN[3]);
+   case 11: //Cancel?
       //Use Function to cancel timer here
-   case "A": //Shift fn?
+   case 12: //Shift fn?
    
-   case "B": //Preset 1?
-   case "C": //Preset 2?
-   case "D": //Preset 3?
+   case 13: //Preset 1?
+   case 14: //Preset 2?
+   case 15: //Preset 3?
    default:
       error = true;
       break;
   }
 }
+
 void loop() 
 {
   //Getting input; customKey == NULL if there is none
   char customKey = userKeypad.getKey();
-
   //Check if there's an interrupt or there is time left:
   if (customKey){
-    checkKey(customKey);
+    String caseKey = "";
+    caseKey += customKey;
+    int caseKeys = caseKey.toInt();
+    lcd.setCursor(0,0);
+    lcd.print(customKey);
+    lcd.print(caseKeys);
+    checkKey(caseKeys);
   }
 
  if (timeLeft > 0){
