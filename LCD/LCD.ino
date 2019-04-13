@@ -155,19 +155,11 @@ void checkKey(int input){
     case 9:
     case 0:
       //Remove the first char of the string and add the input at the end:
-      
       timeIN.remove(0,1);
       timeIN += input;
-      
-      
-      
-      
+  
       updateScreen();
       break;
-   default:
-      break;
-  }
-  switch(input){
    case 10: //Enter?
       //use function to start timer here
       String toNum = "";
@@ -295,7 +287,7 @@ void changeSelected(int input){
         case 9:
         case 0:
           //Remove the first char of the string and add the input at the end:
-          if(timeIN[0] == "0"){
+          if(tempTime[0] == "0"){
             tempTime.remove(0,1);
             tempTime += input;
           }
