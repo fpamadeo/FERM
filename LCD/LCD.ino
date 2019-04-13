@@ -9,6 +9,10 @@ String preset[3] = {"0015","0030","0100"}; //"MMSS"
 const int rs = 12, en = 11, d0 = 23, d1 = 27, d2 = 31, d3 = 35, d4 = 34, d5 = 30, d6 = 26, d7 = 22;
 LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
 
+//MOTOR:
+#define pwmPin 13
+#define dirPin 53
+
 //Keypad:
 const byte ROWS = 4;
 const byte COLS = 4;
@@ -58,6 +62,13 @@ void setup()
   lcd.print(":");
   lcd.print(timeIN[2]);
   lcd.print(timeIN[3]);
+}
+
+//MOTOR GO UP
+void moveUp(){
+  digitalWrite(dirPin, HIGH);
+  analogWrite(pwmPin, 255);
+  delay(100);
 }
 
 //UPDATES JUST TIME
@@ -144,6 +155,35 @@ String getInt(char input){
 //CHECKS KEY AND CORRESPONDS THE RIGHT ACTION
 void checkKey(int input){
   switch(input){
+   case 11: //Cancel?
+      //Use Function to cancel timer here
+      cancel = true;
+      timeIN = "0000";
+      lcd.setCursor(0,1);
+      lcd.print(timeIN);
+      timeLeft = 0;
+      updateScreen();
+      break;
+   case 12: //Shift fn?
+      shift = true;
+      updateScreen();
+      lcd.setCursor(0,0);
+      lcd.print("SHIFT");
+      break;case 13: //Preset 1?
+      lcd.setCursor(0,0);
+      timeIN = preset[0];
+      updateScreen();
+      break;
+   case 14: //Preset 2?
+      lcd.setCursor(0,0);
+      timeIN = preset[1];
+      updateScreen();
+      break;
+   case 15: //Preset 3?
+      lcd.setCursor(0,0);
+      timeIN = preset[2];
+      updateScreen();
+      break;
     case 1:
     case 2:
     case 3:
@@ -170,41 +210,12 @@ void checkKey(int input){
       toNum += timeIN[2];
       toNum += timeIN[3];
       timeLeft = timeLeft + toNum.toInt();
-      updateScreen();
-      break;
-   case 11: //Cancel?
-      //Use Function to cancel timer here
-      cancel = true;
       timeIN = "0000";
-      lcd.setCursor(0,1);
-      lcd.print(timeIN);
-      timeLeft = 0;
       updateScreen();
       break;
-   case 12: //Shift fn?
-      shift = true;
-      updateScreen();
-      lcd.setCursor(0,0);
-      lcd.print("SHIFT");
-      break;
-   case 13: //Preset 1?
-      lcd.setCursor(0,0);
-      lcd.print("BULLSHIT1");
-      timeIN = preset[0];
-      updateScreen();
-      break;
-   case 14: //Preset 2?
-      lcd.setCursor(0,0);
-      lcd.print("BULLSHIT2");
-      timeIN = preset[1];
-      updateScreen();
-      break;
-   case 15: //Preset 3?
-      lcd.setCursor(0,0);
-      lcd.print("BULLSHIT3");
-      timeIN = preset[2];
-      updateScreen();
-      break;
+
+   
+
    default: 
       error = true;
       break;
@@ -261,13 +272,7 @@ void checkShift(int input){
       }
       updateScreen();
       break;
-   case 15: //Preset 3?
-      if(changePreset){
-        selected = 3;
-        tempTime = "0000";
-      }
-      updateScreen();
-      break;
+
    default:
       break;
   }
@@ -375,11 +380,17 @@ void loop()
     }
   }
 
- if (timeLeft > 0){
+ else if (timeLeft > 0){
     updateTime();
     timeLeft--;
     if (timeLeft == 0){
-      //moveUp(); //#TODO#
+      lcd.setCursor(15,1);
+      lcd.print("0");
+      for(int temp = 0; temp <= 20; temp++){
+        moveUp(); 
+      }
+      
+      analogWrite(pwmPin, 0);
     }
  }
 }
