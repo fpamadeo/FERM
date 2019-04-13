@@ -213,9 +213,6 @@ void checkKey(int input){
       timeIN = "0000";
       updateScreen();
       break;
-
-   
-
    default: 
       error = true;
       break;
@@ -389,7 +386,8 @@ void loop()
       for(int temp = 0; temp <= 20; temp++){
         moveUp(); 
       }
-      
+      analogWrite(pwmPin, 112);
+      delay(200);
       analogWrite(pwmPin, 0);
     }
  }
