@@ -37,6 +37,7 @@ String timeIN = "0000";
 String tempTime = "0000";
 int timeLeft = 0; //should always be in seconds
 int selected = 0; //selected to be changed
+int blinkDelay = 0;
 
 //Bool:
 bool error = false;
@@ -49,7 +50,8 @@ bool blinkTime = false;
 //SETUP
 void setup() 
 {
-
+ pinMode(dirPin, OUTPUT);
+  analogWrite(pwmPin, 0);
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
@@ -71,10 +73,16 @@ void moveUp(){
   delay(100);
 }
 
+//MOTOR GO DOWN
+void moveDown(){
+  digitalWrite(dirPin, LOW);
+  analogWrite(pwmPin, 255);
+  delay(100);
+}
 //UPDATES JUST TIME
 void updateTime(){
-  lcd.setCursor(0,1);
-  lcd.print(timeLeft);
+  //lcd.setCursor(0,1);
+  //lcd.print(timeLeft);
   int minutes, seconds;
   minutes = timeLeft / 60;
   seconds = timeLeft % 60;
@@ -102,11 +110,18 @@ void updateScreen(){
     cancel = false;
     lcd.setCursor(11,1);
     lcd.print("CNCEL");
+    lcd.setCursor(0,0);
+    lcd.print("Standby    ");
+    lcd.setCursor(0,1);
+    lcd.print("           ");
     delay(500);
   }
   lcd.setCursor(0,1);
-  if (selected != 0){
+  if (changePreset){
     lcd.print("Preset");
+    lcd.print(" ");
+  }
+  if (selected != 0){
     lcd.print(selected);
     lcd.print(" ");
   }
@@ -123,7 +138,7 @@ void updateScreen(){
   }
   else{
     lcd.setCursor(0,0);
-    lcd.print("ON");
+    lcd.print("ON         ");
   }
 }
 
@@ -159,16 +174,15 @@ void checkKey(int input){
       //Use Function to cancel timer here
       cancel = true;
       timeIN = "0000";
-      lcd.setCursor(0,1);
-      lcd.print(timeIN);
       timeLeft = 0;
+      
       updateScreen();
       break;
    case 12: //Shift fn?
       shift = true;
       updateScreen();
-      lcd.setCursor(0,0);
-      lcd.print("SHIFT");
+      //lcd.setCursor(0,0);
+      //lcd.print("SHIFT");
       break;case 13: //Preset 1?
       lcd.setCursor(0,0);
       timeIN = preset[0];
@@ -226,22 +240,32 @@ void checkShift(int input){
     case 1://Calibration
       if(not changePreset){
         calibrate = true;
+        lcd.setCursor(0,0);
+        lcd.print("Calibrate  ");
         updateScreen();
       }
       break;
     case 2:
       if (calibrate){
-        //moveUp(); #TODO#
+        moveUp(); //#TODO#
+        analogWrite(pwmPin, 112);
+        delay(200);
+        analogWrite(pwmPin, 0);
       }
       break;
-    case 3:
+    case 5:
       if (calibrate){
-        //moveDown();
+        moveDown();
+        analogWrite(pwmPin, 112);
+        delay(200);
+        analogWrite(pwmPin, 0);
       }
       break;
     case 4://Change Preset
       if(not calibrate){
         changePreset = true;
+        lcd.setCursor(0,0);
+        lcd.print("Changing ");
         updateScreen();
       }
       break;
@@ -249,11 +273,19 @@ void checkShift(int input){
       calibrate = false;
       changePreset = false;
       shift = false;
+          lcd.setCursor(0,0);
+          lcd.print("Standby    ");
+          lcd.setCursor(0,1);
+          lcd.print("           ");
       break;
    case 11: //Cancel?
       calibrate = false;
       changePreset = false;
       shift = false;
+          lcd.setCursor(0,0);
+          lcd.print("Standby    ");
+          lcd.setCursor(0,1);
+          lcd.print("           ");
       break;
    case 13: //Preset 1?
       if(changePreset){
@@ -269,7 +301,13 @@ void checkShift(int input){
       }
       updateScreen();
       break;
-
+   case 15: //Preset 2?
+      if(changePreset){
+        selected = 3;
+        tempTime = "0000";
+      }
+      updateScreen();
+      break;
    default:
       break;
   }
@@ -278,36 +316,6 @@ void checkShift(int input){
 void changeSelected(int input){
   if (changePreset){
       switch(input){
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 0:
-          //Remove the first char of the string and add the input at the end:
-          if(tempTime[0] == "0"){
-            tempTime.remove(0,1);
-            tempTime += input;
-          }
-          else{
-            error = true;
-          }
-          updateScreen();
-          break;
-       case 10: //Enter?
-          //use function to start timer here
-          preset[selected-1] = tempTime;
-          selected = 0;
-          break;
-       case 11: //Cancel?
-          //Use Function to cancel timer here
-          selected = 0;
-          updateScreen();
-          break;
        case 13: //Preset 1?
           if(changePreset){
             selected = 1;
@@ -329,24 +337,49 @@ void changeSelected(int input){
           }
           updateScreen();
           break;
+        case 11: //Cancel?
+          //Use Function to cancel timer here
+          selected = 0;
+          lcd.setCursor(0,0);
+          lcd.print("Standby    ");
+          lcd.setCursor(0,1);
+          lcd.print("           ");
+          updateScreen();
+          break;
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 0:
+          //Remove the first char of the string and add the input at the end:
+          //if(tempTime[selected-1] == "0"){
+            tempTime.remove(0,1);
+            tempTime += input;
+          //}
+          //else{
+          //  error = true;
+          //}
+          updateScreen();
+          break;
+       case 10: //Enter?
+          //use function to start timer here
+          preset[selected-1] = tempTime;
+          lcd.setCursor(0,0);
+          lcd.print("Standby    ");
+          lcd.setCursor(0,1);
+          lcd.print("           ");
+          selected = 0;
+          break;
+
        default:
           error = true;
           break;
     }
-  }
-  if (blinkTime){    
-    lcd.setCursor(1,11);    
-    lcd.print(tempTime[0]);
-    lcd.print(tempTime[1]);
-    lcd.print(":");
-    lcd.print(tempTime[2]);
-    lcd.print(tempTime[3]);
-    blinkTime = false;
-  }
-  else{
-    lcd.setCursor(1,11);    
-    lcd.print("     ");
-    blinkTime = true;
   }
 }
 //MAIN:
@@ -359,10 +392,10 @@ void loop()
     String caseKey = "";
     caseKey += getInt(customKey);
     int caseKeyInt = caseKey.toInt();
-    lcd.setCursor(0,0);
-    lcd.print(customKey);
-    lcd.print(":");
-    lcd.print(caseKeyInt);
+    //lcd.setCursor(0,0);
+    //lcd.print(customKey);
+    //lcd.print(":");
+    //lcd.print(caseKeyInt);
     
     if (not shift){
        checkKey(caseKeyInt);
@@ -383,12 +416,45 @@ void loop()
     if (timeLeft == 0){
       lcd.setCursor(15,1);
       lcd.print("0");
+
       for(int temp = 0; temp <= 20; temp++){
         moveUp(); 
       }
       analogWrite(pwmPin, 112);
       delay(200);
       analogWrite(pwmPin, 0);
+          lcd.setCursor(0,0);
+          lcd.print("Standby    ");
+          lcd.setCursor(0,1);
+          lcd.print("           ");
+    }
+ }
+ if (changePreset){
+    if (blinkTime){    
+      lcd.setCursor(11,1);    
+      lcd.print(tempTime[0]);
+      lcd.print(tempTime[1]);
+      lcd.print(":");
+      lcd.print(tempTime[2]);
+      lcd.print(tempTime[3]);
+      if(blinkDelay >= 1000){
+        blinkTime = false;
+        blinkDelay = 0;
+      }
+      else{
+        blinkDelay++;
+      }
+    }
+    else{
+      lcd.setCursor(11,1);    
+      lcd.print("     ");
+      if(blinkDelay >= 1000){
+        blinkTime = true;
+        blinkDelay = 0;
+      }
+      else{
+        blinkDelay++;
+      }
     }
  }
 }
