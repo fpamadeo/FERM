@@ -69,4 +69,4 @@ D7 | 6
 D8 | 7
 D9 | 8
 
-** * \*Keypad pins are numbered left to right, from the POV of looking at the back upright\* * **
+***\*Keypad pins are numbered left to right, from the POV of looking at the back upright\****
