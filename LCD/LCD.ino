@@ -3,21 +3,27 @@
 #include <Keypad.h>
 
 //Preset:
-String preset[3] = {"0015","0030","0100"}; //"MMSS"
+String preset[3] = {"0015","0030","0100"}; //"MMSS" //Preset times
 
 //LCD pins:
 const int rs = 12, en = 11, d0 = 23, d1 = 27, d2 = 31, d3 = 35, d4 = 34, d5 = 30, d6 = 26, d7 = 22;
 LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
 
 //MOTOR:
-#define pwmPin 13
-#define dirPin 53
+#define pwmPin 13 //Pin to send how fast it is
+#define dirPin 53 //Pin to send if going clockwise or counter-clockwise
+
+//ULTRASONIC(US)  SENSOR:
+#define echoPin 48 //ECHO
+#define trigPin 49 //TRIGGER
+long duration;     //How long til the signal comes back
+int distance;      //How far til the signal bounces off of something
 
 //Keypad:
-const byte ROWS = 4;
-const byte COLS = 4;
+const byte ROWS = 4; //How many rows are there in the keypad
+const byte COLS = 4; //How many columns are there in the keypad
 
-char keys[ROWS][COLS] = 
+char keys[ROWS][COLS] =  //Mapping out the corresponding characters for each key
 {
   {'1','2','3','A'},
   {'4','5','6','B'},
@@ -25,33 +31,46 @@ char keys[ROWS][COLS] =
   {'*','0','#','D'}
 };
 
-byte rowPins[ROWS] = {9, 8, 7, 6};
+byte rowPins[ROWS] = {9, 8, 7, 6}; 
 byte colPins[COLS] = {5, 4, 3, 2};
 
 Keypad userKeypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 //GLOBAL Variables:
 
-//Timer:
-String timeIN = "0000";
-String tempTime = "0000";
-int timeLeft = 0; //should always be in seconds
-int selected = 0; //selected to be changed
-int blinkDelay = 0;
+//Strings:
+String timeIN = "0000"; //Time input in by the user for "normal" executions
+String tempTime = "0000"; //Time input in by the user for "shift" executions; ##TODO: Might be redundant##
+
+//Ints
+int timeLeft = 0; //The actual time the user enters; should always be in seconds
+int selected = 0; //The preset the user selected to be changed
+int blinkDelay = 0; //Used to make the timer blink every 1 second
 
 //Bool:
-bool error = false;
-bool cancel = false;
-bool shift = false;
-bool calibrate = false;
-bool changePreset = false;
-bool blinkTime = false;
+bool error = false; //USED TO CHECK FOR ERRORS, should never be true
+bool cancel = false; //TRUE when user cancels current action/s
+bool shift = false; //TRUE when user uses the shift key 
+bool calibrate = false; //TRUE when the user is calibrating
+bool changePreset = false; //TRUE when the user is changing a preset
+bool blinkTime = false; //USED FOR MAKING THE TIME BLINK every 1 second 
 
 //SETUP
 void setup() 
 {
- pinMode(dirPin, OUTPUT);
-  analogWrite(pwmPin, 0);
+  //US SENSOR:
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+
+  //MOTOR:
+  pinMode(dirPin, OUTPUT);
+  digitalWrite(dirPin, HIGH);//initialization
+  analogWrite(pwmPin, 0); //initialization
+  
+  //TESTING:
+  Serial.begin(9600);
+
+  //LCD:
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
@@ -79,6 +98,7 @@ void moveDown(){
   analogWrite(pwmPin, 255);
   delay(100);
 }
+
 //UPDATES JUST TIME
 void updateTime(){
   //lcd.setCursor(0,1);
@@ -233,6 +253,26 @@ void checkKey(int input){
   }
 }
 
+//CHECKS SENSOR IF THERE IS SOMETHING THERE //#TODO: FIND DECENT NUMBER FOR THE BASKET#//
+bool checkSensor(){
+   // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  distance= duration*0.034/2;
+  // Prints the distance on the Serial Monitor
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  return true;
+}
+
 //CHECKS KEY AND CORRESPONDS THE RIGHT SHIFT ACTION
 void checkShift(int input){
   //lcd.print(input);
@@ -282,10 +322,11 @@ void checkShift(int input){
       calibrate = false;
       changePreset = false;
       shift = false;
-          lcd.setCursor(0,0);
-          lcd.print("Standby    ");
-          lcd.setCursor(0,1);
-          lcd.print("           ");
+      lcd.setCursor(0,0);
+      lcd.print("Standby    ");
+      lcd.setCursor(0,1);
+      lcd.print("           ");
+      
       break;
    case 13: //Preset 1?
       if(changePreset){
@@ -301,7 +342,7 @@ void checkShift(int input){
       }
       updateScreen();
       break;
-   case 15: //Preset 2?
+   case 15: //Preset 3?
       if(changePreset){
         selected = 3;
         tempTime = "0000";
@@ -313,6 +354,7 @@ void checkShift(int input){
   }
 }
 
+//Uses the whole keypad again, for changing presets
 void changeSelected(int input){
   if (changePreset){
       switch(input){
@@ -341,9 +383,10 @@ void changeSelected(int input){
           //Use Function to cancel timer here
           selected = 0;
           lcd.setCursor(0,0);
-          lcd.print("Standby    ");
+          lcd.print("Cancellled  ");
           lcd.setCursor(0,1);
           lcd.print("           ");
+          tempTime = "0000";
           updateScreen();
           break;
         case 1:
@@ -370,10 +413,11 @@ void changeSelected(int input){
           //use function to start timer here
           preset[selected-1] = tempTime;
           lcd.setCursor(0,0);
-          lcd.print("Standby    ");
+          lcd.print("DONE       ");
           lcd.setCursor(0,1);
           lcd.print("           ");
           selected = 0;
+          tempTime = "0000";
           break;
 
        default:
@@ -382,6 +426,7 @@ void changeSelected(int input){
     }
   }
 }
+
 //MAIN:
 void loop() 
 {
@@ -457,4 +502,5 @@ void loop()
       }
     }
  }
+
 }
