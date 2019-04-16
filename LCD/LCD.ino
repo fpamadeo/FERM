@@ -104,6 +104,9 @@ void updateTime(){
   //lcd.setCursor(0,1);
   //lcd.print(timeLeft);
   int minutes, seconds;
+  if(cancel){
+    return;
+  }
   minutes = timeLeft / 60;
   seconds = timeLeft % 60;
   if(minutes > 99){
@@ -482,7 +485,7 @@ void loop()
       lcd.print(":");
       lcd.print(tempTime[2]);
       lcd.print(tempTime[3]);
-      if(blinkDelay >= 1000){
+      if(blinkDelay >= 500){
         blinkTime = false;
         blinkDelay = 0;
       }
@@ -493,7 +496,7 @@ void loop()
     else{
       lcd.setCursor(11,1);    
       lcd.print("     ");
-      if(blinkDelay >= 1000){
+      if(blinkDelay >= 500){
         blinkTime = true;
         blinkDelay = 0;
       }
