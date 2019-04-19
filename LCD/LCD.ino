@@ -1,7 +1,7 @@
 #include <LiquidCrystal.h>
 #include <Wire.h>
 #include <Keypad.h>
-
+//**********************************************************************************************************//
 //Preset:
 String preset[3] = {"0015","0030","0100"}; //"MMSS" //Preset times
 
@@ -12,13 +12,17 @@ LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
 //MOTOR:
 #define pwmPin 13 //Pin to send how fast it is
 #define dirPin 53 //Pin to send if going clockwise or counter-clockwise
+#define UP true //boolean value to send to move up
+#define DOWN false //boolean value to send to move down
+#define MOTOR_DELAY 100 //how long is each "step"; in microseconds
+#define MOTOR_SPEED 255 //PWM value to send to motor driver; Range: 0-255
+#define DEFAULT_STEPS 10 //From lowest point to highest point in steps
 
 //ULTRASONIC(US)  SENSOR:
 #define echoPin 48 //ECHO
 #define trigPin 49 //TRIGGER
-long duration;     //How long til the signal comes back
-int distance;      //How far til the signal bounces off of something
-
+#define sensorDelay 100 //centiseconds 
+#define sensorThres 10 //threshold 
 //Keypad:
 const byte ROWS = 4; //How many rows are there in the keypad
 const byte COLS = 4; //How many columns are there in the keypad
@@ -46,6 +50,10 @@ String tempTime = "0000"; //Time input in by the user for "shift" executions; ##
 int timeLeft = 0; //The actual time the user enters; should always be in seconds
 int selected = 0; //The preset the user selected to be changed
 int blinkDelay = 0; //Used to make the timer blink every 1 second
+long duration;     //How long til the signal comes back
+int distance;      //How far til the signal bounces off of something
+int stepsToDo = DEFAULT_STEPS; //Steps needed for now #TODO#
+int tempSteps = 0; //Steps the user is doing before everything is saved or cancelled 
 
 //Bool:
 bool error = false; //USED TO CHECK FOR ERRORS, should never be true
@@ -55,6 +63,7 @@ bool calibrate = false; //TRUE when the user is calibrating
 bool changePreset = false; //TRUE when the user is changing a preset
 bool blinkTime = false; //USED FOR MAKING THE TIME BLINK every 1 second 
 
+//**********************************************************************************************************//
 //SETUP
 void setup() 
 {
@@ -85,6 +94,9 @@ void setup()
   lcd.print(timeIN[3]);
 }
 
+//**********************************************************************************************************//
+//Previous Code:
+/*
 //MOTOR GO UP
 void moveUp(){
   digitalWrite(dirPin, HIGH);
@@ -98,7 +110,32 @@ void moveDown(){
   analogWrite(pwmPin, 255);
   delay(100);
 }
+*/
 
+//MOVE MOTOR:
+void moveMotor(bool dir, int steps){
+  if (steps < 1){
+    error = true;
+    updateScreen(); //Show on screen, there's error
+    delay(3000);
+    updateScreen(); //Return to standby, after three second
+    return;
+  }
+  if (dir == UP){
+    digitalWrite(dirPin, HIGH);
+  }
+  else{
+    digitalWrite(dirPin, LOW);
+  }
+  analogWrite(pwmPin, MOTOR_SPEED);
+  delay(MOTOR_DELAY * (steps - 1));
+  analogWrite(pwmPin, MOTOR_SPEED / 2);
+  delay(MOTOR_DELAY);
+  analogWrite(pwmPin, 0);
+  return;
+}
+
+//**********************************************************************************************************//
 //UPDATES JUST TIME
 void updateTime(){
   //lcd.setCursor(0,1);
@@ -165,6 +202,7 @@ void updateScreen(){
   }
 }
 
+//**********************************************************************************************************//
 //GIVES PROPER INT FOR CASES:
 String getInt(char input){
   if (input == '*'){
@@ -190,6 +228,47 @@ String getInt(char input){
   return returnThis;
 }
 
+//**********************************************************************************************************//
+
+//CHECKS SENSOR IF THERE IS SOMETHING THERE //#TODO: FIND DECENT NUMBER FOR THE BASKET#//
+bool checkSensor(bool motorPosition){
+
+  for(int i = 0; i < sensorDelay; i++){
+       // Clears the trigPin
+      digitalWrite(trigPin, LOW);
+      delayMicroseconds(2);
+      // Sets the trigPin on HIGH state for 10 micro seconds
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+      // Reads the echoPin, returns the sound wave travel time in microseconds
+      duration = pulseIn(echoPin, HIGH);
+      // Calculating the distance
+      distance= duration*0.034/2;
+      // Prints the distance on the Serial Monitor
+      Serial.print("Distance: ");
+      Serial.println(distance);
+      if (motorPosition == UP){
+        if (distance < sensorThres){
+          return false;
+        }
+      }
+      else{
+        if (distance < sensorThres){
+          return true;
+        }
+      }
+      
+  }
+  if (motorPosition == UP){
+        return true;
+      }
+      else{
+        return false;
+      }
+}
+
+//**********************************************************************************************************//
 //CHECKS KEY AND CORRESPONDS THE RIGHT ACTION
 void checkKey(int input){
   switch(input){
@@ -256,26 +335,6 @@ void checkKey(int input){
   }
 }
 
-//CHECKS SENSOR IF THERE IS SOMETHING THERE //#TODO: FIND DECENT NUMBER FOR THE BASKET#//
-bool checkSensor(){
-   // Clears the trigPin
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  // Sets the trigPin on HIGH state for 10 micro seconds
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  // Reads the echoPin, returns the sound wave travel time in microseconds
-  duration = pulseIn(echoPin, HIGH);
-  // Calculating the distance
-  distance= duration*0.034/2;
-  // Prints the distance on the Serial Monitor
-  Serial.print("Distance: ");
-  Serial.println(distance);
-
-  return true;
-}
-
 //CHECKS KEY AND CORRESPONDS THE RIGHT SHIFT ACTION
 void checkShift(int input){
   //lcd.print(input);
@@ -290,18 +349,14 @@ void checkShift(int input){
       break;
     case 2:
       if (calibrate){
-        moveUp(); //#TODO#
-        analogWrite(pwmPin, 112);
-        delay(200);
-        analogWrite(pwmPin, 0);
+        moveMotor(UP, 1);
+        tempSteps--;
       }
       break;
     case 5:
       if (calibrate){
-        moveDown();
-        analogWrite(pwmPin, 112);
-        delay(200);
-        analogWrite(pwmPin, 0);
+        moveMotor(DOWN,1);
+        tempSteps++;
       }
       break;
     case 4://Change Preset
@@ -313,18 +368,32 @@ void checkShift(int input){
       }
       break;
     case 10: //Enter?
+      tempSteps = 0;
       calibrate = false;
       changePreset = false;
       shift = false;
-          lcd.setCursor(0,0);
-          lcd.print("Standby    ");
-          lcd.setCursor(0,1);
-          lcd.print("           ");
+      lcd.setCursor(0,0);
+      lcd.print("Saved      ");
+      delay(500);
+      lcd.setCursor(0,0);
+      lcd.print("Standby    ");
+      lcd.setCursor(0,1);
+      lcd.print("           ");
       break;
    case 11: //Cancel?
+      if(tempSteps > 0){
+        moveMotor(UP,tempSteps);
+      }
+      else{
+        moveMotor(DOWN, tempSteps * -1); 
+      }
+      tempSteps = 0;
       calibrate = false;
       changePreset = false;
       shift = false;
+      lcd.setCursor(0,0);
+      lcd.print("Cancelled  ");
+      delay(500);
       lcd.setCursor(0,0);
       lcd.print("Standby    ");
       lcd.setCursor(0,1);
@@ -385,6 +454,7 @@ void changeSelected(int input){
         case 11: //Cancel?
           //Use Function to cancel timer here
           selected = 0;
+          shift = false;
           lcd.setCursor(0,0);
           lcd.print("Cancellled  ");
           lcd.setCursor(0,1);
@@ -419,6 +489,7 @@ void changeSelected(int input){
           lcd.print("DONE       ");
           lcd.setCursor(0,1);
           lcd.print("           ");
+          shift = true;
           selected = 0;
           tempTime = "0000";
           break;
@@ -430,6 +501,7 @@ void changeSelected(int input){
   }
 }
 
+//**********************************************************************************************************//
 //MAIN:
 void loop() 
 {
@@ -440,41 +512,42 @@ void loop()
     String caseKey = "";
     caseKey += getInt(customKey);
     int caseKeyInt = caseKey.toInt();
+    Serial.println(customKey);
+    
     //lcd.setCursor(0,0);
     //lcd.print(customKey);
     //lcd.print(":");
     //lcd.print(caseKeyInt);
     
     if (not shift){
-       checkKey(caseKeyInt);
+       //checkKey(caseKeyInt);
     }
     else{
       if(selected == 0){
-        checkShift(caseKeyInt);
+        //checkShift(caseKeyInt);
       }
       else{
-        changeSelected(caseKeyInt);
+        //changeSelected(caseKeyInt);
       }
     }
   }
 
- else if (timeLeft > 0){
+ if (timeLeft > 0){
     updateTime();
     timeLeft--;
     if (timeLeft == 0){
       lcd.setCursor(15,1);
       lcd.print("0");
-
-      for(int temp = 0; temp <= 20; temp++){
-        moveUp(); 
+      if(checkSensor(DOWN)){
+        moveMotor(UP, stepsToDo);
       }
-      analogWrite(pwmPin, 112);
-      delay(200);
-      analogWrite(pwmPin, 0);
-          lcd.setCursor(0,0);
-          lcd.print("Standby    ");
-          lcd.setCursor(0,1);
-          lcd.print("           ");
+      lcd.setCursor(0,0);
+      lcd.print("Hanger Up  ");
+      lcd.setCursor(0,1);
+      lcd.print("           ");
+      if(checkSensor(UP)){
+        moveMotor(DOWN, stepsToDo);
+      }
     }
  }
  if (changePreset){
