@@ -520,14 +520,14 @@ void loop()
     //lcd.print(caseKeyInt);
     
     if (not shift){
-       //checkKey(caseKeyInt);
+       checkKey(caseKeyInt);
     }
     else{
       if(selected == 0){
-        //checkShift(caseKeyInt);
+        checkShift(caseKeyInt);
       }
       else{
-        //changeSelected(caseKeyInt);
+        changeSelected(caseKeyInt);
       }
     }
   }
@@ -545,9 +545,14 @@ void loop()
       lcd.print("Hanger Up  ");
       lcd.setCursor(0,1);
       lcd.print("           ");
-      if(checkSensor(UP)){
-        moveMotor(DOWN, stepsToDo);
+      while(checkSensor(UP)){
+        
       }
+        moveMotor(DOWN, stepsToDo);
+      lcd.setCursor(0,0);
+      lcd.print("Standby  ");
+      lcd.setCursor(0,1);
+      lcd.print("           ");      
     }
  }
  if (changePreset){
