@@ -14,15 +14,16 @@ LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
 #define dirPin 53 //Pin to send if going clockwise or counter-clockwise
 #define UP true //boolean value to send to move up
 #define DOWN false //boolean value to send to move down
-#define MOTOR_DELAY 100 //how long is each "step"; in microseconds
+#define MOTOR_DELAY 200 //how long is each "step"; in microseconds
 #define MOTOR_SPEED 255 //PWM value to send to motor driver; Range: 0-255
-#define DEFAULT_STEPS 10 //From lowest point to highest point in steps
+#define DEFAULT_STEPS 10//From lowest point to highest point in steps
 
 //ULTRASONIC(US)  SENSOR:
 #define echoPin 48 //ECHO
 #define trigPin 49 //TRIGGER
-#define sensorDelay 100 //centiseconds 
+#define sensorDelay 75 //centiseconds 
 #define sensorThres 10 //threshold 
+
 //Keypad:
 const byte ROWS = 4; //How many rows are there in the keypad
 const byte COLS = 4; //How many columns are there in the keypad
@@ -75,7 +76,8 @@ void setup()
   pinMode(dirPin, OUTPUT);
   digitalWrite(dirPin, HIGH);//initialization
   analogWrite(pwmPin, 0); //initialization
-  
+  stepsToDo = DEFAULT_STEPS;
+   
   //TESTING:
   Serial.begin(9600);
 
@@ -122,15 +124,15 @@ void moveMotor(bool dir, int steps){
     return;
   }
   if (dir == UP){
-    digitalWrite(dirPin, HIGH);
-  }
-  else{
     digitalWrite(dirPin, LOW);
   }
+  else{
+    digitalWrite(dirPin, HIGH);
+  }
   analogWrite(pwmPin, MOTOR_SPEED);
-  delay(MOTOR_DELAY * (steps - 1));
-  analogWrite(pwmPin, MOTOR_SPEED / 2);
-  delay(MOTOR_DELAY);
+  delay(MOTOR_DELAY * (steps));
+  //analogWrite(pwmPin, MOTOR_SPEED / 2);
+  //delay(MOTOR_DELAY);
   analogWrite(pwmPin, 0);
   return;
 }
@@ -246,6 +248,8 @@ bool checkSensor(bool motorPosition){
       // Calculating the distance
       distance= duration*0.034/2;
       // Prints the distance on the Serial Monitor
+      Serial.print("Duration: ");
+      Serial.println(duration);
       Serial.print("Distance: ");
       Serial.println(distance);
       if (motorPosition == UP){
@@ -262,10 +266,10 @@ bool checkSensor(bool motorPosition){
   }
   if (motorPosition == UP){
         return true;
-      }
-      else{
+   }
+  else{
         return false;
-      }
+    }
 }
 
 //**********************************************************************************************************//
@@ -368,10 +372,17 @@ void checkShift(int input){
       }
       break;
     case 10: //Enter?
-      tempSteps = 0;
       calibrate = false;
       changePreset = false;
       shift = false;
+      if (tempSteps < 0){
+        tempSteps--;
+      }
+      else if (tempSteps > 0){
+        tempSteps++;
+      }
+      stepsToDo += tempSteps;
+      tempSteps = 0;
       lcd.setCursor(0,0);
       lcd.print("Saved      ");
       delay(500);
@@ -382,10 +393,17 @@ void checkShift(int input){
       break;
    case 11: //Cancel?
       if(tempSteps > 0){
-        moveMotor(UP,tempSteps);
+        for(int i = 0; i <= tempSteps; i++){
+          moveMotor(UP, 1);
+        }
+      }
+      else if(tempSteps == 0){
+        
       }
       else{
-        moveMotor(DOWN, tempSteps * -1); 
+        for(int i = 0; i <= (tempSteps*-1) ; i++){
+          moveMotor(DOWN, 1);
+        }
       }
       tempSteps = 0;
       calibrate = false;
@@ -539,16 +557,29 @@ void loop()
       lcd.setCursor(15,1);
       lcd.print("0");
       if(checkSensor(DOWN)){
-        moveMotor(UP, stepsToDo);
+        for(int i = 0; i <= stepsToDo+1; i++){
+          moveMotor(UP, 1);
+          delay(10);
+        }
+        Serial.print("FRYER'S THERE");
+        delay(500);
+        lcd.setCursor(0,0);
+        lcd.print("Hanger Up  ");
+        lcd.setCursor(0,1);
+        lcd.print("           ");
+        while(not checkSensor(UP)){
+        //  delay(200); //loop while basket is there
+        }
+        for(int i = 0; i <= stepsToDo+1; i++){
+          moveMotor(DOWN, 1);
+          delay(10);
+        }
       }
-      lcd.setCursor(0,0);
-      lcd.print("Hanger Up  ");
-      lcd.setCursor(0,1);
-      lcd.print("           ");
-      while(checkSensor(UP)){
-        
+      else{
+        lcd.setCursor(0,0);
+        lcd.print("NO BASKET");
+        delay(500);
       }
-        moveMotor(DOWN, stepsToDo);
       lcd.setCursor(0,0);
       lcd.print("Standby  ");
       lcd.setCursor(0,1);
