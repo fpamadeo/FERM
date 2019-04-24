@@ -21,7 +21,7 @@ LiquidCrystal lcd(rs, en, d0, d1, d2, d3, d4, d5, d6, d7);
 //ULTRASONIC(US)  SENSOR:
 #define echoPin 48 //ECHO
 #define trigPin 49 //TRIGGER
-#define sensorDelay 75 //centiseconds 
+#define sensorDelay 50 //centiseconds 
 #define sensorThres 10 //threshold 
 
 //Keypad:
@@ -116,6 +116,7 @@ void moveDown(){
 
 //MOVE MOTOR:
 void moveMotor(bool dir, int steps){
+  int eachDelay;
   if (steps < 1){
     error = true;
     updateScreen(); //Show on screen, there's error
@@ -125,12 +126,14 @@ void moveMotor(bool dir, int steps){
   }
   if (dir == UP){
     digitalWrite(dirPin, LOW);
+    eachDelay = MOTOR_DELAY;
   }
   else{
     digitalWrite(dirPin, HIGH);
+    eachDelay = MOTOR_DELAY * 80 / 100;
   }
   analogWrite(pwmPin, MOTOR_SPEED);
-  delay(MOTOR_DELAY * (steps));
+  delay(eachDelay * (steps));
   //analogWrite(pwmPin, MOTOR_SPEED / 2);
   //delay(MOTOR_DELAY);
   analogWrite(pwmPin, 0);
@@ -393,16 +396,18 @@ void checkShift(int input){
       break;
    case 11: //Cancel?
       if(tempSteps > 0){
-        for(int i = 0; i <= tempSteps; i++){
+        for(int i = 1; i <= tempSteps; i++){
           moveMotor(UP, 1);
+          delay(100);
         }
       }
       else if(tempSteps == 0){
         
       }
       else{
-        for(int i = 0; i <= (tempSteps*-1) ; i++){
+        for(int i = 1; i <= (tempSteps*-1) ; i++){
           moveMotor(DOWN, 1);
+          delay(100);
         }
       }
       tempSteps = 0;
@@ -557,7 +562,7 @@ void loop()
       lcd.setCursor(15,1);
       lcd.print("0");
       if(checkSensor(DOWN)){
-        for(int i = 0; i <= stepsToDo+1; i++){
+        for(int i = 0; i < stepsToDo; i++){
           moveMotor(UP, 1);
           delay(10);
         }
@@ -570,7 +575,7 @@ void loop()
         while(not checkSensor(UP)){
         //  delay(200); //loop while basket is there
         }
-        for(int i = 0; i <= stepsToDo+1; i++){
+        for(int i = 0; i < stepsToDo; i++){
           moveMotor(DOWN, 1);
           delay(10);
         }
