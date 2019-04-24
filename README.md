@@ -5,7 +5,7 @@
 _______________________________________________________________________________________________________________________________
 ## Table of Contents:
 **FERMix** | **Fryer**
------ | -----
+:---: | :---
 **1** | [Members](README.md#1-Members)
 **2** | [About the Project](README.md#2-About-the-Project)
 2.1 | [Abstract](README.md#21-Abstract)
